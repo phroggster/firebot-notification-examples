@@ -1,0 +1,11 @@
+root = true
+
+[*]
+charset = utf-8
+# EOL will be converted to LF on commit to git regardless of platform per .gitattributes. This just shuts up warnings in Visual Studio for incessantly using CRLF.
+end_of_line = native
+insert_final_newline = true
+
+[*.{js,json,mjs,ts}]
+indent_size = 2
+indent_style = space

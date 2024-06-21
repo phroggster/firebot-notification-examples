@@ -1,0 +1,4 @@
+*         text=auto
+*.esproj  text eol=crlf
+*.sln     text eol=crlf
+*.yml     text
