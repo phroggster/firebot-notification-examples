@@ -7,6 +7,7 @@ import {
 import { modules } from "../script-modules";
 import { MessageEffectModel } from "../types";
 
+// Displays a modal informational dialog box that blocks access to the Firebot UI until it gets dismissed.
 const infoDialogEffectType: Effects.EffectType<MessageEffectModel> = {
   definition: {
     id: `${EFFECTS_SOURCE_ID}:${INFO_DIALOG_EFFECT_ID}`,
@@ -34,8 +35,22 @@ const infoDialogEffectType: Effects.EffectType<MessageEffectModel> = {
     return errors;
   },
   onTriggerEvent: async (event) => {
-    await modules.frontendCommunicator.send("info", event.effect.message);
-    return { success: true };
+    const { effect } = event;
+    const { logger } = modules;
+
+    try {
+      await modules.frontendCommunicator.send("info", effect.message);
+      return { success: true };
+    }
+    catch (anyError) {
+      const error = anyError as Error;
+      if (error) {
+        logger.error(`Error while triggering info dialog ${error.name}: `, error.message);
+      } else {
+        logger.error("Unknown error while triggering info dialog: ", JSON.stringify(anyError));
+      }
+      return { success: false };
+    }
   }
 };
 

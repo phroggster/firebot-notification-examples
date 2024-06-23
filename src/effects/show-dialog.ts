@@ -7,7 +7,7 @@ import {
 import { modules } from "../script-modules";
 import { DialogType, ShowDialogModel } from "../types";
 
-// TODO: this effect is a work-in-progress, and *DOES* *NOT* *WORK*. It's not currently being loaded by default, and exists here more as an idea for the time being.
+// TODO: this effect is a work-in-progress, and *DOES* *NOT* *WORK*. It's not currently being loaded, and exists here more as an idea for the time being.
 // We _can_ get dialogs from Electron *somehow* (not that it's *much* better than info-dialog nor warning-dialog) I just don't want to import Electron to do it...
 
 type Scope = EffectScope<ShowDialogModel> & {
@@ -16,6 +16,29 @@ type Scope = EffectScope<ShowDialogModel> & {
   selectEffectType: (type: string) => void,
   beautifyDialogType: (type: string) => string,
 };
+interface MessageBoxReturnValue {
+  response: number;
+}
+interface DialogModal {
+  message: string;
+  title?: string;
+  type?: DialogType;
+  buttons?: Array<string>;
+  defaultId?: number;
+  signal?: unknown;
+  detail?: string;
+}
+interface Dialog {
+  showMessageBox: (browserWindow: Window, options: DialogModal) => Promise<MessageBoxReturnValue>;
+}
+interface WebContents {
+  dialog: Dialog;
+  send: (channel: string, ...args: unknown[]) => void;
+}
+interface Window {
+  dialog: Dialog;
+  webContents: WebContents;
+}
 
 const showDialogEffectType: Effects.EffectType<ShowDialogModel> = {
   definition: {
@@ -94,61 +117,44 @@ const showDialogEffectType: Effects.EffectType<ShowDialogModel> = {
     return errors;
   },
   onTriggerEvent: async (event) => {
-    interface MessageBoxReturnValue {
-      response: number;
-    }
-    interface DialogModal {
-      message: string;
-      title?: string;
-      type?: DialogType;
-      buttons?: Array<string>;
-      defaultId?: number;
-      signal?: unknown;
-      detail?: string;
-    }
-    interface Dialog {
-      showMessageBox: (browserWindow: Window, options: DialogModal) => Promise<MessageBoxReturnValue>;
-    }
-    interface WebContents {
-      dialog: Dialog;
-      send: (channel: string, ...args: unknown[]) => void;
-    }
-    interface Window {
-      dialog: Dialog;
-      webContents: WebContents;
-    }
-
-    modules.logger.debug(`Attempting to display ${event.effect.dialogType} dialog titled "${event.effect.title}": `, event.effect.message);
+    const { /*frontendCommunicator,*/ logger } = modules;
+    logger.debug(`Attempting to display ${event.effect.dialogType} dialog titled "${event.effect.title}": `, event.effect.message);
 
     // https://www.electronjs.org/docs/latest/api/dialog#dialogshowmessageboxbrowserwindow-options
     const window = renderWindow as Window;
     const { effect } = event;
 
-    // modules.logger.debug("renderWindow is: ", JSON.stringify(renderWindow));
+    // logger.debug("renderWindow is: ", JSON.stringify(renderWindow));
     //// { "_events": { "blur": [null, null], "focus": [null, null, null], "show": [null, null], "minimize": [null, null], "restore": [null, null], "close": [null, null], "closed": [null, null] }, "_eventsCount": 13, "devToolsWebContents": { "_windowOpenHandler": null, "ipc": { "_events": { }, "_eventsCount": 1, "_invokeHandlers": { } }, "_events": { "render-process-gone": [null, null] }, "_eventsCount": 9 } }
-    // modules.logger.debug("renderWindow.webcontents is: ", JSON.stringify((renderWindow as any).webContents));
+    // logger.debug("renderWindow.webcontents is: ", JSON.stringify((renderWindow as any).webContents));
     //// {"ipc":{"_events":{},"_eventsCount":1,"_invokeHandlers":{}},"_events":{"render-process-gone":[null,null]},"_eventsCount":13}
 
-    //modules.logger.debug("dialog is: ", JSON.stringify((renderWindow as any).dialog));
+    //logger.debug("dialog is: ", JSON.stringify((renderWindow as any).dialog));
     //   [empty, null, undefined, etc.]
-    //modules.logger.debug("webcontents.dialog is: ", JSON.stringify(((renderWindow as any).webContents as any).dialog));
+    //logger.debug("webcontents.dialog is: ", JSON.stringify(((renderWindow as any).webContents as any).dialog));
     //   [empty, null, undefined, etc.]
 
     try {
-      //modules.frontendCommunicator.send("dialog", effect);
+      // This does not work...
+      //frontendCommunicator.send("dialog", effect);
 
-      // TODO: This doesn't work. There's another way into this; find it.
+      // TODO: This also does not work. There's another way into this; find it...
       await window.webContents.dialog.showMessageBox(window, {
         message: effect.message,
         title: effect.title,
         type: effect.dialogType,
       });
-    } catch (anyErr) {
-      const error = anyErr as Error;
-      modules.logger.error(`Caught error attempting to display dialog: ${error.message}`, error);
+      return { success: true };
+    }
+    catch (anyError) {
+      const error = anyError as Error;
+      if (error) {
+        logger.error(`Error while triggering custom dialog ${error.name}: `, error.message);
+      } else {
+        logger.error("Unknown error while triggering custom dialog: ", JSON.stringify(anyError));
+      }
       return { success: false };
     }
-    return { success: true };
   }
 };
 

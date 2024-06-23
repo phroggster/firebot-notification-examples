@@ -7,6 +7,7 @@ import {
 import { modules } from "../script-modules";
 import { MessageEffectModel } from "../types";
 
+// Displays a modal error dialog box that blocks access to the Firebot UI until it gets dismissed.
 const errorDialogEffectType: Effects.EffectType<MessageEffectModel> = {
   definition: {
     id: `${EFFECTS_SOURCE_ID}:${ERROR_DIALOG_EFFECT_ID}`,
@@ -33,7 +34,21 @@ const errorDialogEffectType: Effects.EffectType<MessageEffectModel> = {
     return errors;
   },
   onTriggerEvent: async (event) => {
-    await modules.frontendCommunicator.send("error", event.effect.message);
+    const { logger } = modules;
+
+    try {
+      await modules.frontendCommunicator.send("error", event.effect.message);
+      return { success: true };
+    }
+    catch (anyError) {
+      const error = anyError as Error;
+      if (error) {
+        logger.error(`Error while triggering error dialog ${error.name}: `, error.message);
+      } else {
+        logger.error("Unknown error while triggering error dialog: ", JSON.stringify(anyError));
+      }
+      return { success: false };
+    }
   }
 };
 

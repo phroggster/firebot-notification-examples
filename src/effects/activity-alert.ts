@@ -83,6 +83,7 @@ const activityEffectType: Effects.EffectType<ActivityFeedModel> = {
   },
   onTriggerEvent: async (event) => {
     const { effect } = event;
+    const { logger } = modules;
 
     try {
       // Override the icon directly in the definition
@@ -98,7 +99,11 @@ const activityEffectType: Effects.EffectType<ActivityFeedModel> = {
     }
     catch (anyError) {
       const error = anyError as Error;
-      modules.logger.error(`Failed to trigger activity alert event: ${error.message}`, error);
+      if (error) {
+        logger.error(`Error while triggering activity alert ${error.name}: `, error.message);
+      } else {
+        logger.error("Unknown error while triggering activity alert: ", JSON.stringify(anyError));
+      }
       return { success: false };
     }
   }

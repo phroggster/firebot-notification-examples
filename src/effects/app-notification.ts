@@ -18,6 +18,8 @@ interface Scope extends EffectScope<NotificationModel> {
   selectNotificationType: (beautifiedType: string) => void,
 }
 
+// Mimics the behavior of notificationManager.addNotification(), which adds a notification to the alert bell in the top-right of the application.
+// notificationManager is not presently exposed to ScriptModules.
 const appNotificationEffectType: Effects.EffectType<NotificationModel> = {
   definition: {
     id: `${EFFECTS_SOURCE_ID}:${APP_NOTIFICATION_EFFECT_ID}`,
@@ -108,10 +110,14 @@ const appNotificationEffectType: Effects.EffectType<NotificationModel> = {
     }
     catch (anyError) {
       const error = anyError as Error;
-      logger.error(`Error while submitting notification: ${error.name}: `, error.message);
+      if (error) {
+        logger.error(`Error while triggering app notification ${error.name}: `, error.message);
+      } else {
+        logger.error("Unknown error while triggering app notification: ", JSON.stringify(anyError));
+      }
       return { success: false };
     }
   }
-}
+};
 
 export default appNotificationEffectType;

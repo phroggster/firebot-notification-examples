@@ -7,7 +7,7 @@ export const SCRIPT_NAME = "Notification Examples";
 /** A short description of the script as displayed in Firebot. */
 export const SCRIPT_DESCRIPTION = "A pointless Firebot v5 script for locally displaying various alerts, notifications, messages, and the like";
 /** The version of the script as displayed in Firebot. */
-export const SCRIPT_VERSION = "0.6.0";
+export const SCRIPT_VERSION = "0.7.0";
 
 /** The unique identifier used to identify this script's events source. */
 export const EVENTS_SOURCE_ID = "notifs";

@@ -1,4 +1,5 @@
 import { Effects } from "@crowbartools/firebot-custom-scripts-types/types/effects";
+import { ScriptModules } from "@crowbartools/firebot-custom-scripts-types";
 import {
   CHAT_ALERT_EFFECT_ID,
   EFFECTS_SOURCE_ID,
@@ -7,6 +8,19 @@ import {
 import { modules } from "../script-modules";
 import { MessageEffectModel } from "../types";
 
+type UpdatedTwitchChat = ScriptModules["twitchChat"] & {
+  /** Whether or not the streamer is currently connected to chat. */
+  get chatIsConnected(): boolean;
+  /**
+   * Adds a one-time listener function to the end of the listeners array for the event named eventName. The next time eventName is triggered, this listener is removed and then invoked.
+   * @param eventName The name of the event.
+   * @param listener The callback function.
+   */
+  once<ExpectedArgs extends Array<any> = [], ReturnPayload = void>( // eslint-disable-line @typescript-eslint/no-explicit-any
+    eventName: string | symbol,
+    listener: (...args: ExpectedArgs[]) => ReturnPayload
+  ): UpdatedTwitchChat;
+}
 interface WebContents {
   send: (channel: string, ...args: unknown[]) => void;
 }
@@ -14,7 +28,7 @@ interface Window {
   webContents: WebContents;
 }
 
-// Mimics the firebot:chat-feed-alert effect, which shows an alert in the main chat feed if it's connected.
+// Mimics the firebot:chat-feed-alert (src/backend/effects/builtin/chat-feed-alert.js) effect, which shows an alert in the main chat feed if chat is connected.
 const chatAlertEffectType: Effects.EffectType<MessageEffectModel> = {
   definition: {
     id: `${EFFECTS_SOURCE_ID}:${CHAT_ALERT_EFFECT_ID}`,
@@ -41,31 +55,44 @@ const chatAlertEffectType: Effects.EffectType<MessageEffectModel> = {
     return errors;
   },
   onTriggerEvent: async (event) => {
-    // const alertEffect = modules.effectManager.getEffectById<MessageEffectModel>("firebot:chat-feed-alert");
-    // await alertEffect.onTriggerEvent(event);
-
     const { effect } = event;
-    if (modules.twitchChat.chatIsConnected) {
-      (renderWindow as Window).webContents.send("chatUpdate", {
-        fbEvent: "ChatAlert",
-        message: effect.message
-      });
-    } else {
-      modules.twitchChat.once("connected", () => {
+    const { logger } = modules;
+    const twitchChat = modules.twitchChat as UpdatedTwitchChat;
+
+    try {
+      if (twitchChat.chatIsConnected) {
+        // Fire the effect off immediately
         (renderWindow as Window).webContents.send("chatUpdate", {
           fbEvent: "ChatAlert",
           message: effect.message
         });
-      });
+      } else {
+        // Queue the effect up for after chat gets connected
+        twitchChat.once("connected", () => {
+          (renderWindow as Window).webContents.send("chatUpdate", {
+            fbEvent: "ChatAlert",
+            message: effect.message
+          });
+        });
+      }
+      return {
+        success: true,
+        execution: {
+          stop: false,
+          bubbleStop: false,
+        },
+      };
     }
-    return {
-      success: true,
-      execution: {
-        stop: false,
-        bubbleStop: false,
-      },
-    };
+    catch (anyError) {
+      const error = anyError as Error;
+      if (error) {
+        logger.error(`Error while triggering chat alert ${error.name}: `, error.message);
+      } else {
+        logger.error("Unknown error while triggering chat alert: ", JSON.stringify(anyError));
+      }
+      return { success: false };
+    }
   }
-}
+};
 
 export default chatAlertEffectType;

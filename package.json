@@ -1,7 +1,7 @@
 {
   "name": "firebot-notification-examples",
   "scriptOutputName": "notificationExamples",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A pointless Firebot v5 script for locally displaying various alerts, notifications, messages, and the like",
   "main": "",
   "scripts": {
@@ -15,7 +15,7 @@
   "author": "phroggie",
   "license": "GPL-3.0-or-later",
   "devDependencies": {
-    "@crowbartools/firebot-custom-scripts-types": "github:phroggster/firebot-custom-scripts-types#phroggies-divergance",
+    "@crowbartools/firebot-custom-scripts-types": "^5.60.1",
     "@eslint/js": "^9.5.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^18.18.2",
